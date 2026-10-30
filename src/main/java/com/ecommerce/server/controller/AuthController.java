@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+// http://localhost:8080/api/auth/register
+// {
+//      "email": "",
+//      "password": ""
+// }
 @RestController
 @RequestMapping("api/auth")
 public class AuthController {

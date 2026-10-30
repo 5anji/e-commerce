@@ -56,7 +56,7 @@ public class JwtService {
         try {
             String email = extractEmail(token);
             return email.equals(expectedEmail)
-                    && extractAllClaims(token).getExpiration().before(new Date());
+                    && extractAllClaims(token).getExpiration().after(new Date());
         } catch (Exception e) {
             return false;
         }
