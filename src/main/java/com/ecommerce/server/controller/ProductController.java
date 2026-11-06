@@ -3,6 +3,7 @@ package com.ecommerce.server.controller;
 import com.ecommerce.server.dto.product.CategoryLinkRequest;
 import com.ecommerce.server.dto.product.ProductRequest;
 import com.ecommerce.server.dto.product.ProductResponse;
+import com.ecommerce.server.dto.product.ProductSearchRequest;
 import com.ecommerce.server.dto.product.ProductUpdateRequest;
 import com.ecommerce.server.service.ProductService;
 
@@ -45,6 +46,13 @@ public class ProductController {
     @ResponseStatus(HttpStatus.CREATED)
     public ProductResponse createProduct(@Valid @RequestBody ProductRequest request) {
         return productService.create(request);
+    }
+
+    @PostMapping("/search")
+    public List<ProductResponse> searchProducts(
+            @Valid @RequestBody ProductSearchRequest request
+    ) {
+        return productService.search(request);
     }
 
     @PatchMapping("/{id}")

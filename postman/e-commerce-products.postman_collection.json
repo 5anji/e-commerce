@@ -222,6 +222,34 @@
           ]
         },
         {
+          "name": "POST search products",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "search"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minPrice\": 10,\n  \"maxPrice\": 100,\n  \"minStock\": 1,\n  \"categoryId\": {{categoryId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
           "name": "GET product by id",
           "request": {
             "method": "GET",

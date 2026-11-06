@@ -3,6 +3,7 @@ package com.ecommerce.server.service;
 import com.ecommerce.server.dto.product.CategoryLinkRequest;
 import com.ecommerce.server.dto.product.ProductRequest;
 import com.ecommerce.server.dto.product.ProductResponse;
+import com.ecommerce.server.dto.product.ProductSearchRequest;
 import com.ecommerce.server.dto.product.ProductUpdateRequest;
 import com.ecommerce.server.entity.Category;
 import com.ecommerce.server.entity.Product;
@@ -14,6 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.jpa.domain.Specification;
+
+import jakarta.persistence.criteria.Predicate;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -45,6 +51,64 @@ public class ProductService {
                         HttpStatus.NOT_FOUND,
                         "Product not found"
                 ));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> search(ProductSearchRequest request) {
+        if (request.minPrice() != null
+                && request.maxPrice() != null
+                && request.minPrice().compareTo(request.maxPrice()) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "minPrice must be less than or equal to maxPrice"
+            );
+        }
+
+        if (request.minStock() != null
+                && request.maxStock() != null
+                && request.minStock() > request.maxStock()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "minStock must be less than or equal to maxStock"
+            );
+        }
+
+        Specification<Product> specification = (root, criteriaQuery, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (request.minPrice() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                        root.get("price"), request.minPrice()));
+            }
+
+            if (request.maxPrice() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                        root.get("price"), request.maxPrice()));
+            }
+
+            if (request.minStock() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                        root.get("stock"), request.minStock()));
+            }
+
+            if (request.maxStock() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                        root.get("stock"), request.maxStock()));
+            }
+
+            if (request.categoryId() != null) {
+                predicates.add(criteriaBuilder.equal(
+                        root.get("category").get("id"), request.categoryId()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return productRepository
+                .findAll(specification)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
