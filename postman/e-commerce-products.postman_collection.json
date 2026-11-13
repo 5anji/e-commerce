@@ -429,6 +429,115 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Cache test (product search)",
+      "description": "Verifies the Redis cache on POST /api/products/search. Step 1 uses a unique request body and should take ~2s (dummy sleep on a cache miss). Step 2 repeats the same body and should be fast (cache hit). Step 3: wait 60+ seconds after step 1, then send it; the same key has expired, so it should be slow again and the app should log the Redis expiration.",
+      "item": [
+        {
+          "name": "1. Search - cache miss (~2s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('cacheTestNonce', Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('cache miss took at least 1.5s', () => pm.expect(pm.response.responseTime).to.be.above(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "search"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxStock\": {{cacheTestNonce}}\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Search - cache hit (fast)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('cache hit took less than 1s', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "search"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxStock\": {{cacheTestNonce}}\n}"
+            }
+          }
+        },
+        {
+          "name": "3. Search - after 60s TTL (~2s)",
+          "description": "Wait at least 60 seconds after step 1 before sending this. It reuses the body from step 1, so it targets the same Redis key after expiration.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('expired entry was recomputed (at least 1.5s)', () => pm.expect(pm.response.responseTime).to.be.above(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "search"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxStock\": {{cacheTestNonce}}\n}"
+            }
+          }
+        }
+      ]
     }
   ]
 }
